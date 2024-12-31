@@ -9,9 +9,17 @@ spring:
         banner-mode: off
         log-startup-info: false
     kafka:
+      listener:
+
+        ack-mode: batch
+#       ack-mode: manual
+#       ack-mode: count
+#       ack-mode: time
+#       ack-mode: count_time
+        ack-count: 10 #Esta configuración debe ir si tenemos ack mode en count.
       consumer:
-        group-id: kafka-core-consumer-group
         auto-offset-reset: earliest
+        max-poll-records: 7   #Esta configuración debe ir si tenemos ack-mode en batch.
       bootstrap-servers: localhost:9092
     jackson:
       date-format: yyyy-MM-dd

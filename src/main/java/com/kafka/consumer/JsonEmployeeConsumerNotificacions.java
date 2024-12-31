@@ -9,7 +9,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.kafka.entity.Employee;
 
-@Service
+//@Service
 public class JsonEmployeeConsumerNotificacions {
 
 	@Autowired
