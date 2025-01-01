@@ -9,18 +9,22 @@ spring:
         banner-mode: off
         log-startup-info: false
     kafka:
-      listener:
+#      listener:
 
-        ack-mode: batch
+##        ack-mode: batch
 #       ack-mode: manual
 #       ack-mode: count
 #       ack-mode: time
 #       ack-mode: count_time
-        ack-count: 10 #Esta configuración debe ir si tenemos ack mode en count.
+#        ack-count: 10 #Esta configuración debe ir si tenemos ack mode en count.
       consumer:
         auto-offset-reset: earliest
-        max-poll-records: 7   #Esta configuración debe ir si tenemos ack-mode en batch.
+#        max-poll-records: 7   #Esta configuración debe ir si tenemos ack-mode en batch.
       bootstrap-servers: localhost:9092
+      properties:
+         partition:
+           assignment:
+             strategy: org.apache.kafka.clients.consumer.StickyAssignor
     jackson:
       date-format: yyyy-MM-dd
       
