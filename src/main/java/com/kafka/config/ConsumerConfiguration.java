@@ -51,7 +51,7 @@ public class ConsumerConfiguration {
     	return new DefaultKafkaConsumerFactory<>(properties);
     }
     
-    @Bean(name="filteringContainer")
+    //@Bean(name="filteringContainer")
     ConcurrentKafkaListenerContainerFactory<Object, Object> ConcurrentKafkaListenerContainerFactory(
     		ConcurrentKafkaListenerContainerFactoryConfigurer configurer, SslBundles sslbundles, ObjectMapper mapper) {
     	
