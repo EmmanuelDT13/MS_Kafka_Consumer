@@ -15,9 +15,14 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.kafka.entity.CarLocation;
 
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
+import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.listener.adapter.RecordFilterStrategy;
+import org.springframework.util.backoff.FixedBackOff;
 
 @Configuration
 @EnableKafka
@@ -69,6 +74,20 @@ public class ConsumerConfiguration {
 				}
 			}
     	});
+    	factory.setCommonErrorHandler(new DefaultErrorHandler(new FixedBackOff(10000,3)));
+    	return factory;
+    }
+    
+    @Bean(name="dead-letter")
+    ConcurrentKafkaListenerContainerFactory<Object, Object> ConcurrentKafkaListenerContainerFactoryDeadLetterTopic(
+    		ConcurrentKafkaListenerContainerFactoryConfigurer configurer, SslBundles sslbundles, ObjectMapper mapper, KafkaTemplate<Object, Object> kafkaTemplate) {
+    	
+    	ConcurrentKafkaListenerContainerFactory<Object, Object> factory = new ConcurrentKafkaListenerContainerFactory<Object, Object>();
+    	configurer.configure(factory, this.consumerFactory());
+    	
+    	DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(kafkaTemplate, (record, ex) -> new TopicPartition("my-dead-letter-topic", record.partition()));
+    	
+    	factory.setCommonErrorHandler(new DefaultErrorHandler(recoverer, new FixedBackOff(10000,3)));
     	return factory;
     }
 }
