@@ -30,12 +30,12 @@ public class FilterCarLocationConsumer {
 					),
 			dltTopicSuffix="-dead" //Allows us to modify the default suffix for each dead letter topic. (The default suffix is .dlt) Example: my-topic.dlt -> my-topic-dead
 			)
-	@KafkaListener(topics="t-filtering", groupId="t-filter-all", errorHandler = "carLocationErrorHandler", containerFactory = "dead-letter")
+	@KafkaListener(topics="t-filtering", groupId="t-filter-all", errorHandler = "carLocationErrorHandler", containerFactory = "dead-letter", id="hello-consumer")
 	public void listeningWithFilter(String jsonCarLocation) throws JsonMappingException, JsonProcessingException {
 		
 		CarLocation carLocation = opbjectMapper.readValue(jsonCarLocation, CarLocation.class);
 		
-		if (carLocation.getDistance() > 95) throw new RuntimeException("The distance is bigger than allowed 95");
+		//if (carLocation.getDistance() > 95) throw new RuntimeException("The distance is bigger than allowed 95");
 		
 		System.out.println("Car Location: " + carLocation);
 		
