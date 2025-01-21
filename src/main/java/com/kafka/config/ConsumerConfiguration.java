@@ -10,11 +10,11 @@ import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import java.util.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.kafka.entity.CarLocation;
-
+import com.kafka.entity.Request;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
@@ -41,54 +41,42 @@ public class ConsumerConfiguration {
         return objectMapper;
     }
     
-   // @Bean
-    ConcurrentKafkaListenerContainerFactory<String, String> concurrentKafkaListenerContainerFactory(){
-    	ConcurrentKafkaListenerContainerFactory<String, String> listener = new ConcurrentKafkaListenerContainerFactory<>();
-    	listener.setConsumerFactory(this.consumerFactory());
-    	return listener;
-    }
     // @Bean
     ConsumerFactory<Object, Object> consumerFactory(){
     	Map<String, Object> properties = new HashMap<>();
     	properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-    	properties.put(ConsumerConfig.GROUP_ID_CONFIG, "fast-group");
+    	properties.put(ConsumerConfig.GROUP_ID_CONFIG, "request-group");
     	properties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
     	properties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
     	properties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     	return new DefaultKafkaConsumerFactory<>(properties);
     }
     
-    //@Bean(name="filteringContainer")
-    ConcurrentKafkaListenerContainerFactory<Object, Object> ConcurrentKafkaListenerContainerFactory(
-    		ConcurrentKafkaListenerContainerFactoryConfigurer configurer, SslBundles sslbundles, ObjectMapper mapper) {
+    @Bean(name="request-topic-container")
+    ConcurrentKafkaListenerContainerFactory<Object, Object> createRequestContainerFactory(ConcurrentKafkaListenerContainerFactoryConfigurer configurer, SslBundles bundles, KafkaTemplate<Object,Object> kafkaTemplate){
     	
+    	//Container logic creation logic
     	ConcurrentKafkaListenerContainerFactory<Object, Object> factory = new ConcurrentKafkaListenerContainerFactory<Object, Object>();
     	configurer.configure(factory, this.consumerFactory());
-    	
+
+    	//Filter logic
     	factory.setRecordFilterStrategy(new RecordFilterStrategy<Object, Object>(){
 			@Override
 			public boolean filter(ConsumerRecord<Object, Object> consumerRecord) {
+				
+				Request request;
 				try {
-					CarLocation carLocation = mapper.readValue(consumerRecord.value().toString(), CarLocation.class);
-					return carLocation.getDistance() <= 100;
-				}catch(Exception e) {
+					request = objectMapper().readValue(consumerRecord.value().toString(), Request.class);
+					return request.getClientId() == 0;
+				} catch (JsonProcessingException e) {
+					e.printStackTrace();
 					return false;
 				}
 			}
     	});
-    	factory.setCommonErrorHandler(new DefaultErrorHandler(new FixedBackOff(10000,3)));
-    	return factory;
-    }
-    
-    @Bean(name="dead-letter")
-    ConcurrentKafkaListenerContainerFactory<Object, Object> ConcurrentKafkaListenerContainerFactoryDeadLetterTopic(
-    		ConcurrentKafkaListenerContainerFactoryConfigurer configurer, SslBundles sslbundles, ObjectMapper mapper, KafkaTemplate<Object, Object> kafkaTemplate) {
     	
-    	ConcurrentKafkaListenerContainerFactory<Object, Object> factory = new ConcurrentKafkaListenerContainerFactory<Object, Object>();
-    	configurer.configure(factory, this.consumerFactory());
-    	
-    	DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(kafkaTemplate, (record, ex) -> new TopicPartition("my-dead-letter-topic", record.partition()));
-    	
+    	//Dead letter topic and retry login
+    	DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(kafkaTemplate, (record, ex) -> new TopicPartition("request-dead-lettertopic", record.partition()));
     	factory.setCommonErrorHandler(new DefaultErrorHandler(recoverer, new FixedBackOff(10000,3)));
     	return factory;
     }

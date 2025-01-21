@@ -6,7 +6,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 @Service
-public class CarLocationScheduler {
+public class RequestScheduler {
 
 	@Autowired
 	private KafkaListenerEndpointRegistry registry;
@@ -14,13 +14,13 @@ public class CarLocationScheduler {
 	@Scheduled(cron = "0 29 21 * * *")
 	private void stop() {
 		System.out.println("Stopping the consumer");
-		registry.getListenerContainer("hello-consumer").pause();
+		registry.getListenerContainer("request-topic").pause();
 	}
 	
 	@Scheduled(cron = "0 30 21 * * *")
 	private void resume() {
 		System.out.println("Resuming the consumer");
-		registry.getListenerContainer("hello-consumer").resume();
+		registry.getListenerContainer("request-topic").resume();
 	}
 	
 }
